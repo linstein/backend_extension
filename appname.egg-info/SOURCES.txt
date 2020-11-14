@@ -1,0 +1,7 @@
+setup.py
+appname.egg-info/PKG-INFO
+appname.egg-info/SOURCES.txt
+appname.egg-info/dependency_links.txt
+appname.egg-info/top_level.txt
+test/__init__.py
+test/handler.py
