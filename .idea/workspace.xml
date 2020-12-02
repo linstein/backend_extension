@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="81c4e537-01f8-49dd-a777-ab6cf8876dd5" name="Default Changelist" comment="" />
+    <list default="true" id="81c4e537-01f8-49dd-a777-ab6cf8876dd5" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bktest/handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/bktest/handler.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -14,7 +17,11 @@
       </list>
     </option>
   </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
   <component name="ProjectId" id="1jb8DBEy0ZZniRvey471k1bEV4N" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showExcludedFiles" value="true" />
@@ -23,7 +30,7 @@
   <component name="PropertiesComponent">
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="D:/program_software/try" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="SvnConfiguration">
@@ -46,6 +53,12 @@
       <workItem from="1605340542260" duration="602000" />
       <workItem from="1605342920426" duration="120000" />
       <workItem from="1605356202063" duration="2828000" />
+      <workItem from="1605620220688" duration="1129000" />
+      <workItem from="1605668011118" duration="12000" />
+      <workItem from="1605684755879" duration="642000" />
+      <workItem from="1606280383391" duration="4463000" />
+      <workItem from="1606303893579" duration="3605000" />
+      <workItem from="1606876774814" duration="1248000" />
     </task>
     <servers />
   </component>
@@ -53,9 +66,10 @@
     <option name="version" value="1" />
   </component>
   <component name="WindowStateProjectService">
-    <state x="690" y="218" key="FileChooserDialogImpl" timestamp="1605359161004">
+    <state x="690" y="218" key="FileChooserDialogImpl" timestamp="1606306002814">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="690" y="218" key="FileChooserDialogImpl/0.0.1920.1040@0.0.1920.1040" timestamp="1605359161004" />
+    <state x="690" y="218" key="FileChooserDialogImpl/0.0.1920.1040/1920.0.1920.1040@0.0.1920.1040" timestamp="1605668021570" />
+    <state x="690" y="218" key="FileChooserDialogImpl/0.0.1920.1040@0.0.1920.1040" timestamp="1606306002814" />
   </component>
 </project>

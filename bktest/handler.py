@@ -441,14 +441,18 @@ class ZMQChannelsHandler(AuthenticatedZMQStreamHandler):
                                                                      "data": {"cellid": metadata.get("id"),
                                                                               "user": header.get("username"),
                                                                               "avatar": content.get('avatar'),
+                                                                              "msg_id": header.get("msg_id"),
                                                                               "spec": "executecell",
                                                                               "func": "sync"}})
                     exec_msg['channel'] = 'iopub'
                     for users in options.kernel_ws.get(self.kernel_id):
-                        if users != header.get('username'):
-                            for ws in options.kernel_ws[self.kernel_id].get(users):
-                                if ws is None or ws.is_closing():
-                                    continue
+                        # if users != header.get('username'):
+                        for ws in options.kernel_ws[self.kernel_id].get(users):
+                            if ws is None or ws.is_closing():
+                                continue
+                            if options.kernel_commid.get(str(ws)) is not None and ws != self.ws_connection:
+                                exec_msg['content']["comm_id"] = options.kernel_commid.get(str(ws))
+                                print(exec_msg['content']["comm_id"])
                                 ws.write_message(json.dumps(exec_msg, default=date_default))
                 else:
                     print('locked user cannot execute')
