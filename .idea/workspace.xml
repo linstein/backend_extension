@@ -3,6 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="81c4e537-01f8-49dd-a777-ab6cf8876dd5" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bktest/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/bktest/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bktest/handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/bktest/handler.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -30,7 +31,7 @@
   <component name="PropertiesComponent">
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="D:/program_software/frontend_extension" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="SvnConfiguration">
@@ -58,18 +59,33 @@
       <workItem from="1605684755879" duration="642000" />
       <workItem from="1606280383391" duration="4463000" />
       <workItem from="1606303893579" duration="3605000" />
-      <workItem from="1606876774814" duration="1248000" />
+      <workItem from="1606876774814" duration="8398000" />
+      <workItem from="1607084317746" duration="4257000" />
+      <workItem from="1607133175188" duration="13919000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="1" />
   </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="COLUMN_ORDER" />
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
   <component name="WindowStateProjectService">
-    <state x="690" y="218" key="FileChooserDialogImpl" timestamp="1606306002814">
+    <state x="690" y="218" key="FileChooserDialogImpl" timestamp="1607085672456">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="690" y="218" key="FileChooserDialogImpl/0.0.1920.1040/1920.0.1920.1040@0.0.1920.1040" timestamp="1605668021570" />
-    <state x="690" y="218" key="FileChooserDialogImpl/0.0.1920.1040@0.0.1920.1040" timestamp="1606306002814" />
+    <state x="690" y="218" key="FileChooserDialogImpl/0.0.1920.1040@0.0.1920.1040" timestamp="1607085672456" />
   </component>
 </project>

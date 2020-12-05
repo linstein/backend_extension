@@ -5,7 +5,8 @@ import tornado
 import urllib
 import urllib.parse as urllib_parse
 import json
-from notebook.base.handlers import IPythonHandler
+from notebook.base.handlers import IPythonHandler, APIHandler
+from notebook.utils import maybe_future, url_path_join, url_escape
 from tornado import escape, httpclient
 import threading
 
@@ -18,11 +19,14 @@ from jupyter_client.jsonutil import date_default
 from ipython_genutils.py3compat import cast_unicode
 from notebook.base.zmqhandlers import AuthenticatedZMQStreamHandler
 from tornado.options import define, options
+
 define("kernel_ws", default={})
 define("kernel_cellnum", default={})
 define("kernel_cell", default={})
 define("kernel_lock", default={})
 define("kernel_commid", default={})
+define("ipynb", default={})
+
 
 class KeycloakOAuth2Mixin(tornado.auth.OAuth2Mixin):
     def __init__(self):
@@ -57,6 +61,7 @@ class KeycloakOAuth2Mixin(tornado.auth.OAuth2Mixin):
         return escape.json_decode(response.body)
         # fut.add_done_callback(wrap(functools.partial(self._on_access_token, callback)))
 
+
 class KeycloakOAuth2LoginHandler(tornado.web.RequestHandler,
                                  KeycloakOAuth2Mixin):
     async def get(self):
@@ -79,8 +84,8 @@ class KeycloakOAuth2LoginHandler(tornado.web.RequestHandler,
             #     "http://39.97.126.112:8080/auth/realms/demo/protocol/openid-connect/userinfo",
             #     access_token=access["access_token"])
             print(user)
-            self.set_cookie('access_token',access["access_token"])
-            self.set_cookie('_user_id',user['sub'])
+            self.set_cookie('access_token', access["access_token"])
+            self.set_cookie('_user_id', user['sub'])
             self.set_cookie('username', user['preferred_username'])
             self.set_cookie('avatar', user['avatar'])
             self.redirect('/lab')
@@ -95,10 +100,11 @@ class KeycloakOAuth2LoginHandler(tornado.web.RequestHandler,
                 client_secret=self.secret,
                 scope=['openid', 'email'],
                 response_type='code')
-    
+
     @classmethod
     def validate_security(cls, app, ssl_options=None):
         pass
+
     @classmethod
     def get_user(cls, handler):
         """Called by handlers.get_current_user for identifying the current user.
@@ -116,7 +122,7 @@ class KeycloakOAuth2LoginHandler(tornado.web.RequestHandler,
             get_secure_cookie_kwargs = handler.settings.get('get_secure_cookie_kwargs', {})
             user_id = handler.get_secure_cookie("_user_id", **get_secure_cookie_kwargs)
         else:
-            #cls.set_login_cookie(handler, user_id)
+            # cls.set_login_cookie(handler, user_id)
             # Record that the current request has been authenticated with a token.
             # Used in is_token_authenticated above.
             handler._token_authenticated = True
@@ -127,11 +133,11 @@ class KeycloakOAuth2LoginHandler(tornado.web.RequestHandler,
             if handler.get_cookie("_user_id") is not None:
                 handler.log.warning("Clearing invalid/expired login cookie %s", "_user_id")
                 handler.clear_login_cookie()
-            #if not handler.login_available:
-                # Completely insecure! No authentication at all.
-                # No need to warn here, though; validate_security will have already done that.
+            # if not handler.login_available:
+            # Completely insecure! No authentication at all.
+            # No need to warn here, though; validate_security will have already done that.
             #   user_id = 'anonymous'
-        #print("user_id========="+user_id)
+        # print("user_id========="+user_id)
         # cache value for future retrievals on the same request
         handler._user_id = user_id
         return user_id
@@ -170,6 +176,7 @@ class KeycloakOAuth2LoginHandler(tornado.web.RequestHandler,
         if domain:
             morsel['domain'] = domain
         self.add_header("Set-Cookie", morsel.OutputString())
+
 
 class ZMQChannelsHandler(AuthenticatedZMQStreamHandler):
     '''There is one ZMQChannelsHandler per running kernel and it oversees all
@@ -324,7 +331,7 @@ class ZMQChannelsHandler(AuthenticatedZMQStreamHandler):
     @gen.coroutine
     def get(self, kernel_id):
         self.kernel_id = cast_unicode(kernel_id, 'ascii')
-        print("kernelid+   "+self.kernel_id )
+        print("kernelid+   " + self.kernel_id)
         if options.kernel_lock.get(self.kernel_id) is None:
             lock = threading.Lock()
             options.kernel_lock[kernel_id] = lock
@@ -397,7 +404,7 @@ class ZMQChannelsHandler(AuthenticatedZMQStreamHandler):
                 if ws is None or ws.is_closing():
                     continue
                 if options.kernel_commid.get(str(ws)) is not None and ws != self.ws_connection:
-                    reply['content']["comm_id"]=options.kernel_commid.get(str(ws))
+                    reply['content']["comm_id"] = options.kernel_commid.get(str(ws))
                     print(reply['content']["comm_id"])
                     ws.write_message(json.dumps(reply, default=date_default))
 
@@ -412,6 +419,25 @@ class ZMQChannelsHandler(AuthenticatedZMQStreamHandler):
         else:
             msg = json.loads(msg)
         # print(self.kernel_manager._kernel_connections)
+
+        if msg.get("content"):
+            msgcontent=msg.get("content")
+            if msgcontent.get("data"):
+                content_data=msgcontent.get("data")
+                if content_data.get("cellcontent"):
+                    cellcontent = content_data.get("cellcontent")
+                    cellmetadata=cellcontent.get("metadata")
+                    cellid=cellmetadata.get("id")
+                    save_path = '/'+content_data.get("path")
+                    ipynb=options.ipynb.get(save_path)
+                    for pos,n in enumerate(ipynb["content"]["cells"]):
+                        if n.get("metadata"):
+                            if n.get("metadata").get("id") == cellid:
+                                ipynb["content"]["cells"][pos]=cellcontent
+                                break
+                    print(cellcontent,save_path)
+                    self.contents_manager.save(ipynb, save_path)
+
         if msg.get("header") and msg.get("content"):
             if msg.get("header").get("msg_type") == "comm_msg" and msg.get("content").get("data").get("cellListId"):
                 content = msg.get("content").get("data")
@@ -461,10 +487,8 @@ class ZMQChannelsHandler(AuthenticatedZMQStreamHandler):
         if msg.get("header") and msg.get("content"):
             if msg.get("header").get("msg_type") == "comm_open":
                 content = msg.get("content")
-                commid=str(content.get("comm_id"))
+                commid = str(content.get("comm_id"))
                 options.kernel_commid[str(self.ws_connection)] = commid
-
-
 
         if msg.get("header"):
             if msg.get("header").get("msg_type") == "comm_msg":
@@ -672,6 +696,236 @@ class ZMQChannelsHandler(AuthenticatedZMQStreamHandler):
         logging.error("kernel %s restarted failed!", self.kernel_id)
         self._send_status_message('dead')
 
+
 class HelloWorldHandler(IPythonHandler):
     def get(self):
         self.finish('Hello, world!')
+
+
+class ContentsHandler(APIHandler):
+
+    def location_url(self, path):
+        """Return the full URL location of a file.
+
+        Parameters
+        ----------
+        path : unicode
+            The API path of the file, such as "foo/bar.txt".
+        """
+        return url_path_join(
+            self.base_url, 'api', 'contents', url_escape(path)
+        )
+
+    def _finish_model(self, model, location=True):
+        """Finish a JSON request with a model, setting relevant headers, etc."""
+        if location:
+            location = self.location_url(model['path'])
+            self.set_header('Location', location)
+        self.set_header('Last-Modified', model['last_modified'])
+        self.set_header('Content-Type', 'application/json')
+        self.finish(json.dumps(model, default=date_default))
+
+    @web.authenticated
+    @gen.coroutine
+    def get(self, path=''):
+        """Return a model for a file or directory.
+
+        A directory model contains a list of models (without content)
+        of the files and directories it contains.
+        """
+        print("contents handler")
+        path = path or ''
+        type = self.get_query_argument('type', default=None)
+        if type not in {None, 'directory', 'file', 'notebook'}:
+            raise web.HTTPError(400, u'Type %r is invalid' % type)
+
+        format = self.get_query_argument('format', default=None)
+        if format not in {None, 'text', 'base64'}:
+            raise web.HTTPError(400, u'Format %r is invalid' % format)
+        content = self.get_query_argument('content', default='1')
+        if content not in {'0', '1'}:
+            raise web.HTTPError(400, u'Content %r is invalid' % content)
+        content = int(content)
+
+        model = yield maybe_future(self.contents_manager.get(
+            path=path, type=type, format=format, content=content,
+        ))
+        validate_model(model, expect_content=content)
+        if path != '' and "checkpoints" not in path:
+            if self.contents_manager.get(path=path, type=type, format=format, content=content).get("content") is not None:
+                options.ipynb[path] = self.contents_manager.get(
+                    path=path, type=type, format=format, content=content,
+                )
+                print(path, options.ipynb[path])
+        self._finish_model(model, location=False)
+
+
+    @web.authenticated
+    @gen.coroutine
+    def patch(self, path=''):
+        """PATCH renames a file or directory without re-uploading content."""
+        cm = self.contents_manager
+        model = self.get_json_body()
+        if model is None:
+            raise web.HTTPError(400, u'JSON body missing')
+        model = yield maybe_future(cm.update(model, path))
+        validate_model(model, expect_content=False)
+        self._finish_model(model)
+
+    @gen.coroutine
+    def _copy(self, copy_from, copy_to=None):
+        """Copy a file, optionally specifying a target directory."""
+        self.log.info(u"Copying {copy_from} to {copy_to}".format(
+            copy_from=copy_from,
+            copy_to=copy_to or '',
+        ))
+        model = yield maybe_future(self.contents_manager.copy(copy_from, copy_to))
+        self.set_status(201)
+        validate_model(model, expect_content=False)
+        self._finish_model(model)
+
+    @gen.coroutine
+    def _upload(self, model, path):
+        """Handle upload of a new file to path"""
+        self.log.info(u"Uploading file to %s", path)
+        model = yield maybe_future(self.contents_manager.new(model, path))
+        self.set_status(201)
+        validate_model(model, expect_content=False)
+        self._finish_model(model)
+
+    @gen.coroutine
+    def _new_untitled(self, path, type='', ext=''):
+        """Create a new, empty untitled entity"""
+        self.log.info(u"Creating new %s in %s", type or 'file', path)
+        model = yield maybe_future(self.contents_manager.new_untitled(path=path, type=type, ext=ext))
+        self.set_status(201)
+        validate_model(model, expect_content=False)
+        self._finish_model(model)
+
+    @gen.coroutine
+    def _save(self, model, path):
+        """Save an existing file."""
+        chunk = model.get("chunk", None)
+        if not chunk or chunk == -1:  # Avoid tedious log information
+            self.log.info(u"Saving file at %s", path)
+        model = yield maybe_future(self.contents_manager.save(model, path))
+        validate_model(model, expect_content=False)
+        self._finish_model(model)
+
+    @web.authenticated
+    @gen.coroutine
+    def post(self, path=''):
+        """Create a new file in the specified path.
+
+        POST creates new files. The server always decides on the name.
+
+        POST /api/contents/path
+          New untitled, empty file or directory.
+        POST /api/contents/path
+          with body {"copy_from" : "/path/to/OtherNotebook.ipynb"}
+          New copy of OtherNotebook in path
+        """
+
+        cm = self.contents_manager
+
+        file_exists = yield maybe_future(cm.file_exists(path))
+        if file_exists:
+            raise web.HTTPError(400, "Cannot POST to files, use PUT instead.")
+
+        dir_exists = yield maybe_future(cm.dir_exists(path))
+        if not dir_exists:
+            raise web.HTTPError(404, "No such directory: %s" % path)
+
+        model = self.get_json_body()
+
+        if model is not None:
+            copy_from = model.get('copy_from')
+            ext = model.get('ext', '')
+            type = model.get('type', '')
+            if copy_from:
+                yield self._copy(copy_from, path)
+            else:
+                yield self._new_untitled(path, type=type, ext=ext)
+        else:
+            yield self._new_untitled(path)
+
+    @web.authenticated
+    @gen.coroutine
+    def put(self, path=''):
+        """Saves the file in the location specified by name and path.
+
+        PUT is very similar to POST, but the requester specifies the name,
+        whereas with POST, the server picks the name.
+
+        PUT /api/contents/path/Name.ipynb
+          Save notebook at ``path/Name.ipynb``. Notebook structure is specified
+          in `content` key of JSON request body. If content is not specified,
+          create a new empty notebook.
+        """
+        model = self.get_json_body()
+        if model:
+            if model.get('copy_from'):
+                raise web.HTTPError(400, "Cannot copy with PUT, only POST")
+            exists = yield maybe_future(self.contents_manager.file_exists(path))
+            if exists:
+                yield maybe_future(self._save(model, path))
+            else:
+                yield maybe_future(self._upload(model, path))
+        else:
+            yield maybe_future(self._new_untitled(path))
+
+    @web.authenticated
+    @gen.coroutine
+    def delete(self, path=''):
+        """delete a file in the given path"""
+        cm = self.contents_manager
+        self.log.warning('delete %s', path)
+        yield maybe_future(cm.delete(path))
+        self.set_status(204)
+        self.finish()
+
+
+def validate_model(model, expect_content):
+    """
+    Validate a model returned by a ContentsManager method.
+
+    If expect_content is True, then we expect non-null entries for 'content'
+    and 'format'.
+    """
+    required_keys = {
+        "name",
+        "path",
+        "type",
+        "writable",
+        "created",
+        "last_modified",
+        "mimetype",
+        "content",
+        "format",
+    }
+    missing = required_keys - set(model.keys())
+    if missing:
+        raise web.HTTPError(
+            500,
+            u"Missing Model Keys: {missing}".format(missing=missing),
+        )
+
+    maybe_none_keys = ['content', 'format']
+    if expect_content:
+        errors = [key for key in maybe_none_keys if model[key] is None]
+        if errors:
+            raise web.HTTPError(
+                500,
+                u"Keys unexpectedly None: {keys}".format(keys=errors),
+            )
+    else:
+        errors = {
+            key: model[key]
+            for key in maybe_none_keys
+            if model[key] is not None
+        }
+        if errors:
+            raise web.HTTPError(
+                500,
+                u"Keys unexpectedly not None: {keys}".format(keys=errors),
+            )
