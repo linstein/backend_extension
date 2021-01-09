@@ -425,18 +425,41 @@ class ZMQChannelsHandler(AuthenticatedZMQStreamHandler):
             if msgcontent.get("data"):
                 content_data=msgcontent.get("data")
                 if content_data.get("cellcontent"):
-                    cellcontent = content_data.get("cellcontent")
-                    cellmetadata=cellcontent.get("metadata")
-                    cellid=cellmetadata.get("id")
-                    save_path = '/'+content_data.get("path")
-                    ipynb=options.ipynb.get(save_path)
-                    for pos,n in enumerate(ipynb["content"]["cells"]):
-                        if n.get("metadata"):
-                            if n.get("metadata").get("id") == cellid:
-                                ipynb["content"]["cells"][pos]=cellcontent
-                                break
-                    print(cellcontent,save_path)
-                    self.contents_manager.save(ipynb, save_path)
+                    if content_data.get("spec") == "unlockcell":
+                        cellcontent = content_data.get("cellcontent")
+                        cellmetadata=cellcontent.get("metadata")
+                        cellid=cellmetadata.get("id")
+                        save_path = '/'+content_data.get("path")
+                        ipynb=options.ipynb.get(save_path)
+                        for pos,n in enumerate(ipynb["content"]["cells"]):
+                            if n.get("metadata"):
+                                if n.get("metadata").get("id") == cellid:
+                                    ipynb["content"]["cells"][pos]=cellcontent
+                                    break
+                        print(cellcontent,save_path)
+                        self.contents_manager.save(ipynb, save_path)
+                    elif content_data.get("spec") == "drag_cell":
+                        print("drag_cell")
+                        fromindex = int(content_data.get("from"))
+                        toindex=int(content_data.get("to"))
+                        print(fromindex,toindex)
+                        save_path = '/' + content_data.get("path")
+                        ipynb = options.ipynb.get(save_path)
+                        ipynb["content"]["cells"].insert(toindex, ipynb["content"]["cells"][fromindex])
+                        if fromindex>toindex:
+                            del ipynb["content"]["cells"][fromindex+1]
+                        else:
+                            del ipynb["content"]["cells"][fromindex]
+                        self.contents_manager.save(ipynb, save_path)
+                    elif content_data.get("spec") == "createcell":
+                        cellcontent = content_data.get("cellcontent")
+                        index=int(content_data.get("index"))
+                        save_path = '/' + content_data.get("path")
+                        ipynb = options.ipynb.get(save_path)
+                        ipynb["content"]["cells"].insert(index,cellcontent)
+                        self.contents_manager.save(ipynb, save_path)
+
+
 
         if msg.get("header") and msg.get("content"):
             if msg.get("header").get("msg_type") == "comm_msg" and msg.get("content").get("data").get("cellListId"):
